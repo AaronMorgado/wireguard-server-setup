@@ -1,5 +1,7 @@
 # AWS Ec2 Ubuntu Automated Wireguard Server Setup
-I created this to automate the process of creating a wireguard server on an ec2 instance in aws.
+Executive summary: I created this to automate the process of creating a wireguard server on an ec2 instance in aws.
+
+The wireguard_setup.sh file creates a basic configuration for wireguard server and generates 1 client configuration to be used with whatever device you choose.
 
 HOW TO USE:
 1. Launch ec2 instance
@@ -12,9 +14,6 @@ HOW TO USE:
 8. enter public IP (get this form the aws instance console or by doing "ip a" prior to running script)
 9. enter network interface (normally enX0)
 10. done.
-
-Executive summary:
-The wireguard_setup.sh file creates a basic configuration for wireguard server and generates 1 client configuration to be used with whatever device you choose.
 
 How it works:
 1. installs wireguard
