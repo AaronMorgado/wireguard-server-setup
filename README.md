@@ -1,4 +1,4 @@
-# READ ME
+# AWS Ec2 Ubuntu Automated Wireguard Server Setup
 I created this to automate the process of creating a wireguard server on an ec2 instance in aws.
 
 HOW TO USE:
