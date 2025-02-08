@@ -39,17 +39,15 @@ fi
 PRIVATE_KEY=$(sudo cat /etc/wireguard/server_private.key)
 
 # Create configuration file
-sudo nano /etc/wireguard/wg0.conf << EOF
-[Interface]
-Address = 10.8.0.1/24
-SaveConfig = true
-PrivateKey = $PRIVATE_KEY
-PostUp = ufw route allow in on wg0 out on $INTERFACE
-PostUp = iptables -t nat -I POSTROUTING -o $INTERFACE -j MASQUERADE
-PreDown = ufw route delete allow in on wg0 out on $INTERFACE
-PreDown = iptables -t nat -D POSTROUTING -o $INTERFACE -j MASQUERADE
-ListenPort = 51820
-EOF
+echo "[Interface]" | sudo tee /etc/wireguard/wg0.conf
+echo "Address = 10.8.0.1/24" | sudo tee -a /etc/wireguard/wg0.conf
+echo "SaveConfig = true" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PrivateKey = $PRIVATE_KEY" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PostUp = ufw route allow in on wg0 out on $INTERFACE" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PostUp = iptables -t nat -I POSTROUTING -o $INTERFACE -j MASQUERADE" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PreDown = ufw route delete allow in on wg0 out on $INTERFACE" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PreDown = iptables -t nat -D POSTROUTING -o $INTERFACE -j MASQUERADE" | sudo tee -a /etc/wireguard/wg0.conf
+echo "ListenPort = 51820" | sudo tee -a /etc/wireguard/wg0.conf
 
 # --- Configure One Client ---
 echo "Configuring WireGuard client..."
@@ -61,25 +59,23 @@ sudo cat /etc/wireguard/client1_private.key | wg pubkey | sudo tee /etc/wireguar
 CLIENT_PRIVATE_KEY=$(sudo cat /etc/wireguard/client1_private.key)
 CLIENT_PUBLIC_KEY=$(sudo cat /etc/wireguard/client1_public.key)
 SERVER_PUBLIC_KEY=$(sudo cat /etc/wireguard/server_public.key)
+
 # Create Client Config File
-sudo nano /etc/wireguard/client1.conf << EOF
-[Interface]
-PrivateKey = $CLIENT_PRIVATE_KEY
-Address = 10.8.0.2/24
-DNS = 8.8.8.8
-[Peer]
-PublicKey = $SERVER_PUBLIC_KEY
-AllowedIPs = 0.0.0.0/0
-Endpoint = $SERVER_IP:51820
-PersistentKeepalive = 15
-EOF
+echo "[Interface]" | sudo tee /etc/wireguard/client1.conf
+echo "PrivateKey = $CLIENT_PRIVATE_KEY" | sudo tee -a /etc/wireguard/client1.conf
+echo "Address = 10.8.0.2/24" | sudo tee -a /etc/wireguard/client1.conf
+echo "DNS = 8.8.8.8" | sudo tee -a /etc/wireguard/client1.conf
+echo "[Peer]" | sudo tee -a /etc/wireguard/client1.conf
+echo "PublicKey = $SERVER_PUBLIC_KEY" | sudo tee -a /etc/wireguard/client1.conf
+echo "AllowedIPs = 0.0.0.0/0" | sudo tee -a /etc/wireguard/client1.conf
+echo "Endpoint = $SERVER_IP:51820" | sudo tee -a /etc/wireguard/client1.conf
+echo "PersistentKeepalive = 15" | sudo tee -a /etc/wireguard/client1.conf
 
 # Add Peer to Server Config
-sudo nano /etc/wireguard/wg0.conf << EOF
-[Peer]
-PublicKey = $CLIENT_PUBLIC_KEY
-AllowedIPs = 10.8.0.2/32
-EOF
+echo "[Peer]" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PublicKey = $CLIENT_PUBLIC_KEY" | sudo tee -a /etc/wireguard/wg0.conf
+echo "AllowedIPs = 10.8.0.2/32" | sudo tee -a /etc/wireguard/wg0.conf
+
 
 # --- Enable WireGuard Service ---
 echo "Enabling WireGuard service..."
