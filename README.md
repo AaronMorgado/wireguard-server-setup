@@ -1,6 +1,18 @@
 # READ ME
 I created this to automate the process of creating a wireguard server on an ec2 instance in aws.
 
+HOW TO USE:
+1. Launch ec2 instance
+2. Ensure elastic ip is assigned so you dont have a new public ip every launch (ignore this step if you are never going to shut down your instance)
+3. connect to instance via ssh
+4. git clone "https://github.com/AaronMorgado/wireguard-server-setup.git"
+5. cd /wireguard-server-setup
+6. chmod +x wireguard_setup.sh
+7. sudo ./wireguard_setup.sh
+8. enter public IP (get this form the aws instance console or by doing "ip a" prior to running script)
+9. enter network interface (normally enX0)
+10. done.
+
 Executive summary:
 The wireguard_setup.sh file creates a basic configuration for wireguard server and generates 1 client configuration to be used with whatever device you choose.
 
