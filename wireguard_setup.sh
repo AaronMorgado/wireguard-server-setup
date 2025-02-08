@@ -22,7 +22,6 @@ sudo apt install wireguard -y || error_exit "Failed to install WireGuard."
 
 # --- Configure WireGuard Server ---
 echo "Configuring WireGuard server..."
-mkdir /etc/wireguard/
 
 # Generate Private Key
 sudo wg genkey | sudo tee /etc/wireguard/server_private.key || error_exit "Failed to generate server private key."
@@ -86,5 +85,6 @@ echo "Generating QR code"
 
 # --- Generate QR config code ---
 sudo apt install qrencode
-qrencode -t png -o client1-qr.png -r /etc/wireguard/client1.conf
+qrencode -t png -o /etc/wireguard/client1-qr.png -r /etc/wireguard/client1.conf
+qrencode -t ansiutf8 < /etc/wireguard/client1-qr.png #displays qr code in cli
 echo"done"
