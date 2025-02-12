@@ -1,0 +1,238 @@
+WireGuard VPN Troubleshooting Reference
+
+This document outlines the steps to troubleshoot issues with a WireGuard VPN tunnel—particularly when a client cannot access the internet and experiences slow speeds. Each step includes an explanation and the reasoning behind it.
+1. Analyzing the System Logs
+
+What We Saw:
+
+    Example Log Lines:
+    Feb 12 13:23:46 ip-172-31-19-161 systemd[1]: Starting wg-quick@wg0.service - WireGuard via wg-quick(8) for wg0...
+    Feb 12 13:23:46 ip-172-31-19-161 wg-quick[1529]: [#] ip link add wg0 type wireguard
+    Feb 12 13:23:46 ip-172-31-19-161 wg-quick[1529]: [#] ip link set mtu 8921 up dev wg0
+    ...
+
+Reasoning:
+
+    These logs show how the wg-quick tool creates and configures the wg0 interface.
+    They provide insight into how and when the MTU is being set.
+    Understanding these logs helps pinpoint whether the problem is in initialization, configuration, or later processing (like NAT).
+
+2. Ensuring Proper Server-Side Configuration
+2.1. IP Forwarding
+
+Steps:
+
+    Check if Enabled:
+
+sysctl net.ipv4.ip_forward
+
+The output should be:
+
+net.ipv4.ip_forward = 1
+
+Enable if Needed:
+
+    Edit /etc/sysctl.conf and add:
+
+net.ipv4.ip_forward=1
+
+Reload with:
+
+        sudo sysctl -p
+
+Reasoning:
+
+    IP forwarding allows packets from the VPN interface (wg0) to be routed out through the public interface. Without it, client traffic won’t be forwarded to the internet.
+
+2.2. NAT (Masquerading) via iptables
+
+Steps:
+
+    Verify the MASQUERADE Rule:
+
+sudo iptables -t nat -L -n -v
+
+Look for a rule similar to:
+
+MASQUERADE  all  --  *  enX0  0.0.0.0/0  0.0.0.0/0
+
+Check the Outbound Interface Name:
+
+    ip addr
+
+    Ensure that enX0 (or the interface you are using) is indeed your main network interface.
+
+Reasoning:
+
+    The NAT rule ensures that traffic from VPN clients appears to come from the server’s public IP address.
+    Using the correct interface is critical; if the name is wrong (e.g., eth0 vs. enX0), NAT won’t function correctly.
+
+2.3. AWS-Specific Settings
+
+Steps:
+
+    Disable Source/Destination Check:
+        In the AWS EC2 console, disable the source/destination check for the instance.
+    Security Group Configuration:
+        Verify inbound rules allow port 51820 (WireGuard) and port 22 (SSH).
+        Confirm outbound rules allow necessary traffic (typically all outbound is allowed by default).
+
+Reasoning:
+
+    AWS by default drops packets that have source addresses not matching the instance’s IP unless source/destination checks are disabled.
+    Proper security group settings ensure that traffic isn’t blocked at the AWS network level.
+
+3. Adjusting the MTU Setting
+3.1. Issue with MTU
+
+Observation:
+
+    The log showed:
+
+    ip link set mtu 8921 up dev wg0
+
+    The goal was to lower it to 1420 for better performance and to avoid fragmentation.
+
+3.2. Modifying wg0.conf
+
+Original wg0.conf:
+
+Address = 10.8.0.1/24
+MTU = 8921
+SaveConfig = true
+PostUp = ufw route allow in on wg0 out on enX0
+PostUp = iptables -t nat -I POSTROUTING -o enX0 -j MASQUERADE
+PreDown = ufw route delete allow in on wg0 out on enX0
+PreDown = iptables -t nat -D POSTROUTING -o enX0 -j MASQUERADE
+ListenPort = 51820
+PrivateKey = <priv key>
+
+Steps:
+
+    Change the MTU Value:
+        Edit the file and set MTU = 1420.
+    Problem Encountered:
+        Upon restart, the configuration rewrites the MTU back to 8921.
+    Reasoning & Resolution:
+        SaveConfig Issue:
+        With SaveConfig = true, WireGuard saves the runtime configuration (including the MTU) back to the file on shutdown. Since the runtime MTU was 8921, it overwrites your manual change.
+        Solution:
+        Disable or remove the SaveConfig option so that your manual settings persist:
+
+    SaveConfig = false
+
+    or simply remove the line.
+
+Restart the Service:
+
+sudo systemctl restart wg-quick@wg0
+
+Verify the MTU:
+
+    ip link show wg0
+
+    Look for mtu 1420 in the output.
+
+4. Checking PreUp and PostUp Commands
+
+Steps:
+
+    Inspect the Configuration File:
+        Open /etc/wireguard/wg0.conf in an editor.
+        Look for lines starting with PreUp = or PostUp =.
+    Command-Line Search:
+
+grep -E '^(PreUp|PostUp)' /etc/wireguard/wg0.conf
+
+Review Systemd Logs:
+
+    journalctl -u wg-quick@wg0
+
+    Check for any executed PreUp/PostUp commands that might be affecting your configuration.
+
+Reasoning:
+
+    PreUp and PostUp commands are executed before and after the interface is brought up. They can override manual settings (like MTU) if they include commands such as ip link set dev wg0 mtu <value>.
+
+5. Troubleshooting Performance Issues (Slow Speed)
+
+Observation:
+
+    The client shows 17.8 Mbps download and 3 Mbps upload compared to much higher speeds on the server.
+
+Steps & Considerations:
+5.1. Verify Client and Server MTU Consistency
+
+    Ensure both client and server use similar MTU settings (e.g., 1420).
+    Reasoning:
+    Mismatched MTU values can cause fragmentation or packet drops that reduce throughput.
+
+5.2. Check Underlying Network Conditions
+
+    Test the Client’s Base Connection:
+        Confirm that the non-VPN connection on the client performs well.
+    Use Tools like ping, traceroute:
+        Look for latency or packet loss that could affect VPN performance.
+    Reasoning:
+    The VPN cannot exceed the bandwidth and quality of the client’s underlying internet connection.
+
+5.3. Client Hardware and Software
+
+    Monitor CPU Usage:
+        Ensure that encryption/decryption isn’t overloading the client’s CPU.
+    Check for Local Firewalls or QoS:
+        Make sure no software on the client throttles the VPN traffic.
+    Reasoning:
+    Limited resources or local network configurations can bottleneck performance.
+
+5.4. WireGuard Configuration Options
+
+    PersistentKeepalive:
+        Add to the client configuration:
+
+    PersistentKeepalive = 25
+
+    Reasoning:
+    Keeps NAT mappings alive and may help maintain a stable connection.
+
+AllowedIPs:
+
+    For full tunnel routing:
+
+        AllowedIPs = 0.0.0.0/0, ::/0
+
+        Reasoning:
+        Ensures that all traffic is routed over the VPN and no packets take inefficient paths.
+
+5.5. Performance Benchmarking
+
+    Using iperf3:
+        On the server:
+
+iperf3 -s
+
+On the client:
+
+        iperf3 -c <server-ip>
+
+        Reasoning:
+        This isolates the VPN tunnel performance from other factors, helping to determine if the issue is in the tunnel or elsewhere.
+
+Summary
+
+    Logs Analysis:
+        Interpreting system logs helped identify when and how the interface was configured.
+
+    Server Configuration:
+        Verified IP forwarding, NAT (iptables), and AWS settings (security groups and source/destination checks) to ensure proper packet routing.
+
+    MTU Troubleshooting:
+        Adjusted the MTU in wg0.conf, discovered that SaveConfig was overwriting manual changes, and disabled it to maintain the desired MTU.
+
+    PreUp/PostUp Commands:
+        Checked for any commands in the configuration that might override settings.
+
+    Performance Improvements:
+        Evaluated MTU consistency, network conditions, hardware/software limitations, and client configuration (AllowedIPs, PersistentKeepalive) to improve speed.
+
+By following this document, you should be able to systematically troubleshoot and resolve common issues with a WireGuard VPN setup.
