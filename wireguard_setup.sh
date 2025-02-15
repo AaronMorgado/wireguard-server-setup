@@ -40,7 +40,7 @@ PRIVATE_KEY=$(sudo cat /etc/wireguard/server_private.key)
 # Create configuration file
 echo "[Interface]" | sudo tee /etc/wireguard/wg0.conf
 echo "Address = 10.8.0.1/24" | sudo tee -a /etc/wireguard/wg0.conf
-echo "SaveConfig = true" | sudo tee -a /etc/wireguard/wg0.conf
+echo "MTU = 1420" | sudo tee -a /etc/wireguard/.conf
 echo "PrivateKey = $PRIVATE_KEY" | sudo tee -a /etc/wireguard/wg0.conf
 echo "PostUp = ufw route allow in on wg0 out on $INTERFACE" | sudo tee -a /etc/wireguard/wg0.conf
 echo "PostUp = iptables -t nat -I POSTROUTING -o $INTERFACE -j MASQUERADE" | sudo tee -a /etc/wireguard/wg0.conf
@@ -66,9 +66,9 @@ echo "Address = 10.8.0.2/24" | sudo tee -a /etc/wireguard/client1.conf
 echo "DNS = 8.8.8.8" | sudo tee -a /etc/wireguard/client1.conf
 echo "[Peer]" | sudo tee -a /etc/wireguard/client1.conf
 echo "PublicKey = $SERVER_PUBLIC_KEY" | sudo tee -a /etc/wireguard/client1.conf
-echo "AllowedIPs = 0.0.0.0/0" | sudo tee -a /etc/wireguard/client1.conf
+echo "AllowedIPs = 0.0.0.0/0, ::/0" | sudo tee -a /etc/wireguard/client1.conf
 echo "Endpoint = $SERVER_IP:51820" | sudo tee -a /etc/wireguard/client1.conf
-echo "PersistentKeepalive = 15" | sudo tee -a /etc/wireguard/client1.conf
+echo "PersistentKeepalive = 25" | sudo tee -a /etc/wireguard/client1.conf
 
 # Add Peer to Server Config
 echo "[Peer]" | sudo tee -a /etc/wireguard/wg0.conf
@@ -81,10 +81,3 @@ echo "Enabling WireGuard service..."
 sudo systemctl start wg-quick@wg0.service || error_exit "Failed to start WireGuard service."
 sudo systemctl enable wg-quick@wg0.service || error_exit "Failed to enable WireGuard service."
 echo "done"
-echo "Generating QR code"
-
-# --- Generate QR config code ---
-sudo apt install qrencode
-qrencode -t png -o /etc/wireguard/client1-qr.png -r /etc/wireguard/client1.conf
-qrencode -t ansiutf8 < /etc/wireguard/client1-qr.png #displays qr code in cli
-echo"done"
