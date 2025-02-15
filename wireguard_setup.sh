@@ -78,3 +78,8 @@ echo "Enabling WireGuard service..."
 sudo systemctl start wg-quick@wg0.service || error_exit "Failed to start WireGuard service."
 sudo systemctl enable wg-quick@wg0.service || error_exit "Failed to enable WireGuard service."
 echo "done"
+
+# --- Print QR Code for Client Configuration ---
+sudo apt install qrencode -y
+sudo cp /etc/wireguard/client1.conf /home/ubuntu
+sudo qrencode -t ansiutf8 < /home/ubuntu/client1.conf
