@@ -6,14 +6,22 @@ The wireguard_setup.sh file creates a basic configuration for wireguard server a
 HOW TO USE:
 1. Launch ec2 instance
 2. Ensure elastic ip is assigned so you dont have a new public ip every launch (ignore this step if you are never going to shut down your instance)
-3. connect to instance via ssh
-4. git clone "https://github.com/AaronMorgado/wireguard-server-setup.git"
-5. cd /wireguard-server-setup
-6. chmod +x wireguard_setup.sh
-7. sudo ./wireguard_setup.sh
-8. enter public IP (get this form the aws instance console or by doing "ip a" prior to running script)
-9. enter network interface (normally enX0)
-10. done.
+   - if you have elastic IP you can edit the script to have the elastic IP and then use it as user-data when launching the ec2 instance to speedup      setup time.
+4. connect to instance via instance connect or ssh
+5. git clone "https://github.com/AaronMorgado/wireguard-server-setup.git"
+6. cd /wireguard-server-setup
+7. chmod +x wireguard_setup.sh
+8. sudo ./wireguard_setup.sh
+9. enter elastic IP (get this form the aws instance console or by doing "ip a" prior to running script)
+10. enter network interface (normally enX0)
+11. done.
+12. verify with "sudo systemctl status wg-quick@wg0.service" (should be all green)
+
+SETTING UP CLIENT:
+1. cat out your client1.conf file in /etc/wireguard/client1.conf
+2. use all the info on here to setup a wireguard client config file
+3. click start and connect
+4. verify in your ec2 instance with sudo wg show (will show the handshake and the download/upload speed the client is getting)
 
 How it works:
 1. installs wireguard
