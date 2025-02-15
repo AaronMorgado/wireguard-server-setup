@@ -70,6 +70,8 @@ echo "[Peer]" | sudo tee -a /etc/wireguard/wg0.conf
 echo "PublicKey = $CLIENT_PUBLIC_KEY" | sudo tee -a /etc/wireguard/wg0.conf
 echo "AllowedIPs = 10.8.0.2/32" | sudo tee -a /etc/wireguard/wg0.conf
 
+#--- Enable Port Forwarding --- 
+sudo sysctl -w net.ipv4.ip_forward=1
 
 # --- Enable WireGuard Service ---
 echo "Enabling WireGuard service..."
