@@ -29,11 +29,6 @@ sudo wg genkey | sudo tee /etc/wireguard/server_private.key || error_exit "Faile
 sudo chmod 600 /etc/wireguard/server_private.key || error_exit "Failed to set private key permissions."
 # Generate Public Key
 sudo cat /etc/wireguard/server_private.key | wg pubkey | sudo tee /etc/wireguard/server_public.key || error_exit "Failed to generate server public key."
-# Get main network interface
-read -p "Enter your main network interface (e.g., enp1s0): " INTERFACE
-if [[ -z "$INTERFACE" ]]; then
-    error_exit "Network interface cannot be empty."
-fi
 
 PRIVATE_KEY=$(sudo cat /etc/wireguard/server_private.key)
 
@@ -42,10 +37,10 @@ echo "[Interface]" | sudo tee /etc/wireguard/wg0.conf
 echo "Address = 10.8.0.1/24" | sudo tee -a /etc/wireguard/wg0.conf
 echo "MTU = 1420" | sudo tee -a /etc/wireguard/.conf
 echo "PrivateKey = $PRIVATE_KEY" | sudo tee -a /etc/wireguard/wg0.conf
-echo "PostUp = ufw route allow in on wg0 out on $INTERFACE" | sudo tee -a /etc/wireguard/wg0.conf
-echo "PostUp = iptables -t nat -I POSTROUTING -o $INTERFACE -j MASQUERADE" | sudo tee -a /etc/wireguard/wg0.conf
-echo "PreDown = ufw route delete allow in on wg0 out on $INTERFACE" | sudo tee -a /etc/wireguard/wg0.conf
-echo "PreDown = iptables -t nat -D POSTROUTING -o $INTERFACE -j MASQUERADE" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PostUp = ufw route allow in on wg0 out on enX0" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PostUp = iptables -t nat -I POSTROUTING -o enX0 -j MASQUERADE" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PreDown = ufw route delete allow in on wg0 out on enX0" | sudo tee -a /etc/wireguard/wg0.conf
+echo "PreDown = iptables -t nat -D POSTROUTING -o enX0 -j MASQUERADE" | sudo tee -a /etc/wireguard/wg0.conf
 echo "ListenPort = 51820" | sudo tee -a /etc/wireguard/wg0.conf
 
 # --- Configure One Client ---
